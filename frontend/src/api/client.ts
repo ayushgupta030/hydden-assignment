@@ -28,9 +28,29 @@ export interface StatsResponse {
   _total?: { count: number };
 }
 
-/** One page of People. The population can reach six figures: never fetch it all. */
-export async function listPeople(cursor?: string, limit = 50): Promise<PeoplePage> {
+export interface FilterOptions {
+  department?: string;
+  role?: string;
+  country?: string;
+  active?: boolean | string;
+}
+
+function buildFilterParams(filters?: FilterOptions): URLSearchParams {
   const params = new URLSearchParams();
+  if (!filters) return params;
+
+  if (filters.department) params.set('department', filters.department);
+  if (filters.role) params.set('role', filters.role);
+  if (filters.country) params.set('country', filters.country);
+  if (filters.active !== undefined && filters.active !== '') {
+    params.set('active', String(filters.active));
+  }
+  return params;
+}
+
+/** One page of People with database-side filtering. The population can reach six figures: never fetch it all. */
+export async function listPeople(cursor?: string, limit = 50, filters?: FilterOptions): Promise<PeoplePage> {
+  const params = buildFilterParams(filters);
   if (cursor) {
     params.set('cursor', cursor);
   }
@@ -38,7 +58,8 @@ export async function listPeople(cursor?: string, limit = 50): Promise<PeoplePag
     params.set('limit', String(limit));
   }
 
-  const res = await fetch(`/api/people?${params.toString()}`);
+  const query = params.toString();
+  const res = await fetch(`/api/people${query ? `?${query}` : ''}`);
   if (!res.ok) {
     throw new Error(`Failed to fetch people: ${res.status} ${res.statusText}`);
   }
@@ -62,10 +83,27 @@ export async function deletePerson(id: string): Promise<void> {
   }
 }
 
-export async function getStats(): Promise<StatsResponse> {
-  const res = await fetch('/api/people/stats');
+export async function getStats(filters?: FilterOptions): Promise<StatsResponse> {
+  const params = buildFilterParams(filters);
+  const query = params.toString();
+  const res = await fetch(`/api/people/stats${query ? `?${query}` : ''}`);
   if (!res.ok) {
     throw new Error(`Failed to fetch stats: ${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
+/** Trigger another production run. Appends to the existing population. */
+export async function produce(count: number): Promise<{ status: string; generated: number }> {
+  const res = await fetch('/api/produce', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ count }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to trigger production: ${res.status} ${res.statusText}`);
   }
   return res.json();
 }

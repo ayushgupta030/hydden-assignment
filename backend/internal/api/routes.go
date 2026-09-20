@@ -1,5 +1,4 @@
-// Package api wires the HTTP surface. This package is yours: fill in the
-// handlers.
+// Package api wires the HTTP surface.
 package api
 
 import (
@@ -20,6 +19,37 @@ type peoplePage struct {
 	Next   string          `json:"next,omitempty"`
 }
 
+type produceRequest struct {
+	Count int `json:"count"`
+}
+
+type produceResponse struct {
+	Status    string `json:"status"`
+	Generated int    `json:"generated"`
+}
+
+// applyFilters extracts query filters and applies them as database WHERE conditions.
+func applyFilters(db *gorm.DB, r *http.Request) *gorm.DB {
+	q := db.Model(&person.Person{})
+	if dept := r.URL.Query().Get("department"); dept != "" {
+		q = q.Where("department = ?", dept)
+	}
+	if role := r.URL.Query().Get("role"); role != "" {
+		q = q.Where("role = ?", role)
+	}
+	if country := r.URL.Query().Get("country"); country != "" {
+		q = q.Where("country = ?", country)
+	}
+	if act := r.URL.Query().Get("active"); act != "" {
+		if act == "true" {
+			q = q.Where("active = ?", true)
+		} else if act == "false" {
+			q = q.Where("active = ?", false)
+		}
+	}
+	return q
+}
+
 // Routes returns the API.
 //
 // People are read and deleted, never created or edited over HTTP: there is no
@@ -27,9 +57,7 @@ type peoplePage struct {
 func Routes(db *gorm.DB) http.Handler {
 	mux := http.NewServeMux()
 
-	// List People. This must be paginated -- the population can reach six
-	// figures, and sending all of it to the browser is the failure this
-	// exercise is watching for. store.Page does keyset pagination for you.
+	// List People. This is paginated using keyset pagination with database-level filtering.
 	mux.HandleFunc("GET /api/people", func(w http.ResponseWriter, r *http.Request) {
 		cursor := r.URL.Query().Get("cursor")
 		limit := 50
@@ -39,7 +67,8 @@ func Routes(db *gorm.DB) http.Handler {
 			}
 		}
 
-		rows, err := store.Page[person.Person](db, "id", cursor, limit)
+		filteredDB := applyFilters(db, r)
+		rows, err := store.Page[person.Person](filteredDB, "id", cursor, limit)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -87,14 +116,15 @@ func Routes(db *gorm.DB) http.Handler {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	// Aggregate counts per field, computed by the database rather than in the
-	// browser. See store.GroupCount.
+	// Aggregate counts per field, computed by the database over the whole population or filtered query.
 	mux.HandleFunc("GET /api/people/stats", func(w http.ResponseWriter, r *http.Request) {
 		columns := []string{"country", "department", "role", "active"}
 
+		filteredDB := applyFilters(db, r)
+
 		result := make(map[string]map[string]int64)
 		for _, col := range columns {
-			counts, err := store.GroupCount(db, &person.Person{}, col)
+			counts, err := store.GroupCount(filteredDB, &person.Person{}, col)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
@@ -102,20 +132,43 @@ func Routes(db *gorm.DB) http.Handler {
 			result[col] = counts
 		}
 
-		// Also include total count
+		// Include total count matching the query
 		var total int64
-		db.Model(&person.Person{}).Count(&total)
+		filteredDB.Count(&total)
 		result["_total"] = map[string]int64{"count": total}
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(result)
 	})
 
-	// Bonus: trigger another production run from the UI. This appends to the
-	// population, it never replaces it. It is a control endpoint rather than a
-	// write to a Person, so POST is fine here.
-	//
-	//	mux.HandleFunc("POST /api/produce", ...)
+	// Trigger another production run from the UI. This appends to the
+	// population, it never replaces it.
+	mux.HandleFunc("POST /api/produce", func(w http.ResponseWriter, r *http.Request) {
+		req := produceRequest{Count: 1000}
+		if r.Body != nil && r.ContentLength > 0 {
+			_ = json.NewDecoder(r.Body).Decode(&req)
+		}
+
+		count := req.Count
+		if count <= 0 {
+			count = 1000
+		}
+		if count > 50000 {
+			count = 50000
+		}
+
+		gen := person.NewGenerator(db)
+		if err := gen.Generate(r.Context(), count); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(produceResponse{
+			Status:    "ok",
+			Generated: count,
+		})
+	})
 
 	return mux
 }
