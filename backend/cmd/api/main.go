@@ -39,8 +39,6 @@ func main() {
 
 	// Start your HTTP server here. internal/api.Routes has the routes stubbed
 	// out, and the frontend expects them on addr.
-
-	_ = db // remove this once you use db
 	log.Printf("listening on %s", addr)
 	if err := http.ListenAndServe(addr, api.Routes(db)); err != nil {
 		log.Fatal(err)
