@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"log"
 
 	"dataprocessing/internal/person"
@@ -29,6 +30,10 @@ func main() {
 	}
 
 	// Generate your Person structs here.
+	gen := person.NewGenerator(db)
+	if err := gen.Generate(context.Background(), 1000); err != nil {
+		log.Fatalf("generate initial population: %v", err)
+	}
 
 	// Start your HTTP server here. internal/api.Routes has the routes stubbed
 	// out, and the frontend expects them on addr.
