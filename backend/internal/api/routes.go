@@ -3,10 +3,22 @@
 package api
 
 import (
+	"encoding/json"
+	"errors"
 	"net/http"
+	"strconv"
+
+	"dataprocessing/internal/person"
+	"dataprocessing/internal/store"
 
 	"gorm.io/gorm"
 )
+
+// peoplePage is the JSON envelope for paginated People.
+type peoplePage struct {
+	People []person.Person `json:"people"`
+	Next   string          `json:"next,omitempty"`
+}
 
 // Routes returns the API.
 //
@@ -20,16 +32,62 @@ func Routes(db *gorm.DB) http.Handler {
 	// exercise is watching for. store.Page does keyset pagination for you.
 	mux.HandleFunc("GET /api/people", func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "not implemented", http.StatusNotImplemented)
+		cursor := r.URL.Query().Get("cursor")
+		limit := 50
+		if l := r.URL.Query().Get("limit"); l != "" {
+			if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 && parsed <= 200 {
+				limit = parsed
+			}
+		}
+
+		rows, err := store.Page[person.Person](db, "id", cursor, limit)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		resp := peoplePage{People: rows}
+		if len(rows) == 0 {
+			resp.People = []person.Person{} // ensure JSON array, not null
+		}
+		if len(rows) == limit {
+			resp.Next = rows[len(rows)-1].ID.String()
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
 	})
 
 	// Return one Person, with every field.
 	mux.HandleFunc("GET /api/people/{id}", func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "not implemented", http.StatusNotImplemented)
+		id := r.PathValue("id")
+
+		var p person.Person
+		if err := db.First(&p, "id = ?", id).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				http.Error(w, "not found", http.StatusNotFound)
+				return
+			}
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(p)
 	})
 
 	// Delete one Person. Deleting a Person that is already gone is not an error.
 	mux.HandleFunc("DELETE /api/people/{id}", func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "not implemented", http.StatusNotImplemented)
+		id := r.PathValue("id")
+
+		if err := db.Delete(&person.Person{}, "id = ?", id).Error; err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
 	})
 
 	// Suggested, for the trend view: aggregate counts per field, computed by

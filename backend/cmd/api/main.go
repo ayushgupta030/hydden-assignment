@@ -4,7 +4,9 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
 
+	"dataprocessing/internal/api"
 	"dataprocessing/internal/person"
 	"dataprocessing/internal/store"
 )
@@ -39,4 +41,8 @@ func main() {
 	// out, and the frontend expects them on addr.
 
 	_ = db // remove this once you use db
+	log.Printf("listening on %s", addr)
+	if err := http.ListenAndServe(addr, api.Routes(db)); err != nil {
+		log.Fatal(err)
+	}
 }
