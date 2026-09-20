@@ -4,6 +4,7 @@ package person
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -16,12 +17,19 @@ import (
 // one of each kind of value so that the UI has something to find trends in:
 //
 //	categorical  e.g. Country, Department, Role
-//	numeric      e.g. Age, Salary
+//	numeric      e.g. Age, Salary (assuming in dollars for simplifying the task)
 //	temporal     e.g. JoinedAt
 //	boolean      e.g. Active
 type Person struct {
-	PersonID uuid.UUID `gorm:"primaryKey" json:"personId"`
-	// fill in the rest
+	ID         uuid.UUID `gorm:"primaryKey" json:"id"`
+	Name       string    `gorm:"not null" json:"name"`
+	Country    string    `gorm:"not null;index" json:"country"`
+	Department string    `gorm:"not null;index" json:"department"`
+	Role       string    `gorm:"not null;index" json:"role"`
+	Age        int       `gorm:"not null;index" json:"age"`
+	Salary     float32   `gorm:"not null;index" json:"salary"` // In $ for simplification of task
+	JoinedAt   time.Time `gorm:"not null;index" json:"joinedAt"`
+	Active     bool      `gorm:"not null;index" json:"active"`
 }
 
 // Generator produces People and writes them to the database.
