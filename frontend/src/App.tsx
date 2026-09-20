@@ -1,4 +1,29 @@
 import { useState, useEffect, useCallback } from 'react';
+import {
+  Container,
+  Group,
+  Title,
+  Text,
+  Button,
+  Card,
+  Select,
+  Alert,
+  Loader,
+  Center,
+  ThemeIcon,
+  Stack,
+} from '@mantine/core';
+import {
+  IconUsers,
+  IconPlus,
+  IconRefresh,
+  IconCheck,
+  IconAlertCircle,
+  IconChevronLeft,
+  IconChevronRight,
+  IconChevronsLeft,
+} from '@tabler/icons-react';
+
 import type { Person, StatsResponse, FilterOptions } from './api/client';
 import { listPeople, deletePerson, getStats, produce } from './api/client';
 import PersonTable from './components/PersonTable';
@@ -73,14 +98,12 @@ export default function App() {
     try {
       await deletePerson(id);
 
-      // Optimistically remove from local table state
       setPeople((prev) => prev.filter((p) => p.id !== id));
 
       if (selectedPerson?.id === id) {
         setSelectedPerson(null);
       }
 
-      // Refresh aggregate trends to keep stats consistent
       fetchStatsData(filters);
     } catch (err: any) {
       alert(`Error deleting person: ${err.message}`);
@@ -95,7 +118,6 @@ export default function App() {
       setToastMessage(`Successfully generated ${res.generated.toLocaleString()} new people!`);
       setTimeout(() => setToastMessage(null), 4000);
 
-      // Refresh data
       fetchPeoplePage(cursorHistory[pageIndex], limit, filters);
       fetchStatsData(filters);
     } catch (err: any) {
@@ -139,196 +161,192 @@ export default function App() {
   const totalPopulation = stats?._total?.count ?? 0;
 
   return (
-    <div className="app-container">
-      {/* App Header */}
-      <header className="header">
+    <Container size="xl" py="xl">
+      {/* Header */}
+      <Group justify="space-between" align="flex-start" mb="xl">
         <div>
-          <h1 className="header-title">
-            <span>👥</span> Population Directory
-          </h1>
-          <p className="header-subtitle">
+          <Group gap="xs">
+            <ThemeIcon size={34} radius="md" color="blue" variant="filled">
+              <IconUsers size={20} />
+            </ThemeIcon>
+            <Title order={1} size="h2">
+              Population Directory
+            </Title>
+          </Group>
+          <Text c="dimmed" size="sm" mt={4}>
             Explore demographics, monitor trends across the population, and inspect or prune records.
-          </p>
+          </Text>
         </div>
 
-        {/* Action Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-          {/* Production run button with options */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-            <button
-              className="btn btn-primary"
+        <Group gap="xs">
+          <Button.Group>
+            <Button
+              color="blue"
               onClick={() => handleProduce(1000)}
-              disabled={producing}
-              title="Add 1,000 new people via concurrent producers"
+              loading={producing}
+              leftSection={<IconPlus size={16} />}
             >
-              {producing ? (
-                <>
-                  <div className="loading-spinner" style={{ width: '0.9rem', height: '0.9rem', borderColor: '#ffffff', borderTopColor: 'transparent' }} />
-                  Producing...
-                </>
-              ) : (
-                <>+ Produce 1,000</>
-              )}
-            </button>
-            <button
-              className="btn btn-secondary"
+              + 1,000
+            </Button>
+            <Button
+              color="blue"
+              variant="light"
               onClick={() => handleProduce(5000)}
               disabled={producing}
-              title="Add 5,000 new people via concurrent producers"
             >
               + 5,000
-            </button>
-          </div>
+            </Button>
+          </Button.Group>
 
-          <button
-            className="btn btn-secondary"
+          <Button
+            variant="default"
             onClick={() => {
               fetchPeoplePage(cursorHistory[pageIndex], limit, filters);
               fetchStatsData(filters);
             }}
-            title="Refresh directory and trends"
+            title="Refresh"
+            leftSection={<IconRefresh size={16} />}
           >
-            ↻
-          </button>
-        </div>
-      </header>
+            Refresh
+          </Button>
+        </Group>
+      </Group>
 
       {/* Toast Notification */}
       {toastMessage && (
-        <div
-          style={{
-            padding: '0.75rem 1rem',
-            background: 'var(--success-light)',
-            color: '#065f46',
-            border: '1px solid #a7f3d0',
-            borderRadius: 'var(--radius-md)',
-            marginBottom: '1rem',
-            fontWeight: 500,
-            fontSize: '0.875rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-          }}
+        <Alert
+          color="teal"
+          title="Production Run Completed"
+          icon={<IconCheck size={18} />}
+          withCloseButton
+          onClose={() => setToastMessage(null)}
+          mb="md"
         >
-          <span>✅</span> {toastMessage}
-        </div>
+          {toastMessage}
+        </Alert>
       )}
 
-      {/* Aggregate Trends View */}
+      {/* Error Notification */}
+      {error && (
+        <Alert
+          color="red"
+          title="Error Loading Data"
+          icon={<IconAlertCircle size={18} />}
+          withCloseButton
+          onClose={() => setError(null)}
+          mb="md"
+        >
+          <Group justify="space-between">
+            <Text size="sm">{error}</Text>
+            <Button
+              size="xs"
+              color="red"
+              variant="outline"
+              onClick={() => fetchPeoplePage(cursorHistory[pageIndex], limit, filters)}
+            >
+              Retry
+            </Button>
+          </Group>
+        </Alert>
+      )}
+
+      {/* Aggregate Trends Panel */}
       <TrendPanel stats={stats} loading={statsLoading} />
 
-      {/* Database-side Filter Bar */}
+      {/* Database Filters */}
       <FilterBar filters={filters} onChange={handleFilterChange} />
 
-      {/* Error alert */}
-      {error && (
-        <div
-          style={{
-            padding: '1rem',
-            background: 'var(--danger-light)',
-            color: 'var(--danger)',
-            borderRadius: 'var(--radius-md)',
-            marginBottom: '1rem',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <span>⚠️ {error}</span>
-          <button
-            className="btn btn-secondary btn-sm"
-            onClick={() => fetchPeoplePage(cursorHistory[pageIndex], limit, filters)}
-          >
-            Retry
-          </button>
-        </div>
-      )}
-
-      {/* Main People Table Card */}
-      <div className="card">
-        <div className="card-header">
+      {/* People Table Card */}
+      <Card withBorder shadow="sm" radius="md">
+        <Group justify="space-between" p="md" style={{ borderBottom: '1px solid var(--mantine-color-gray-2)' }}>
           <div>
-            <h2 className="card-title">People Records</h2>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+            <Text fw={700} size="md">
+              People Records
+            </Text>
+            <Text size="xs" c="dimmed">
               Page {pageIndex + 1} • Keyset paginated • Total database matches: {totalPopulation.toLocaleString()}
-            </span>
+            </Text>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <label style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-              Rows per page:
-              <select
-                value={limit}
-                onChange={(e) => {
-                  const newLimit = Number(e.target.value);
+
+          <Group gap="xs">
+            <Text size="xs" c="dimmed">
+              Rows:
+            </Text>
+            <Select
+              size="xs"
+              value={String(limit)}
+              onChange={(val) => {
+                if (val) {
+                  const newLimit = Number(val);
                   setLimit(newLimit);
                   setPageIndex(0);
                   setCursorHistory([undefined]);
-                }}
-                style={{
-                  marginLeft: '0.5rem',
-                  padding: '0.25rem 0.5rem',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border-color)',
-                  fontFamily: 'inherit',
-                }}
-              >
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
-            </label>
-          </div>
-        </div>
-
-        <div className="card-body" style={{ padding: 0 }}>
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '3rem' }}>
-              <div className="loading-spinner" />
-              <p style={{ marginTop: '0.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                Fetching people records...
-              </p>
-            </div>
-          ) : (
-            <PersonTable
-              people={people}
-              onDelete={handleDelete}
-              onSelectPerson={(person) => setSelectedPerson(person)}
+                }
+              }}
+              data={[
+                { value: '25', label: '25' },
+                { value: '50', label: '50' },
+                { value: '100', label: '100' },
+              ]}
+              style={{ width: 80 }}
             />
-          )}
-        </div>
+          </Group>
+        </Group>
+
+        {loading ? (
+          <Center py={60}>
+            <Stack align="center" gap="xs">
+              <Loader size="md" color="blue" />
+              <Text size="sm" c="dimmed">
+                Fetching people records from database...
+              </Text>
+            </Stack>
+          </Center>
+        ) : (
+          <PersonTable
+            people={people}
+            onDelete={handleDelete}
+            onSelectPerson={(person) => setSelectedPerson(person)}
+          />
+        )}
 
         {/* Keyset Pagination Bar */}
-        <div className="pagination-container">
-          <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+        <Group justify="space-between" p="md" style={{ borderTop: '1px solid var(--mantine-color-gray-2)' }}>
+          <Text size="xs" c="dimmed">
             Showing {people.length} record{people.length === 1 ? '' : 's'} on this page
-          </div>
+          </Text>
 
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button
-              className="btn btn-secondary btn-sm"
+          <Group gap="xs">
+            <Button
+              variant="default"
+              size="xs"
               onClick={handleResetToFirst}
               disabled={pageIndex === 0 || loading}
-              title="Return to first page"
+              leftSection={<IconChevronsLeft size={14} />}
             >
-              First Page
-            </button>
-            <button
-              className="btn btn-secondary btn-sm"
+              First
+            </Button>
+            <Button
+              variant="default"
+              size="xs"
               onClick={handlePrevPage}
               disabled={pageIndex === 0 || loading}
+              leftSection={<IconChevronLeft size={14} />}
             >
-              ← Previous
-            </button>
-            <button
-              className="btn btn-primary btn-sm"
+              Previous
+            </Button>
+            <Button
+              color="blue"
+              size="xs"
               onClick={handleNextPage}
               disabled={!nextCursor || loading}
+              rightSection={<IconChevronRight size={14} />}
             >
-              Next Page →
-            </button>
-          </div>
-        </div>
-      </div>
+              Next Page
+            </Button>
+          </Group>
+        </Group>
+      </Card>
 
       {/* Person Detail Modal */}
       <PersonDetailModal
@@ -336,6 +354,6 @@ export default function App() {
         onClose={() => setSelectedPerson(null)}
         onDelete={handleDelete}
       />
-    </div>
+    </Container>
   );
 }

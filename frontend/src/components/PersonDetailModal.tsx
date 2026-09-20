@@ -1,3 +1,5 @@
+import { Modal, Text, Title, Badge, Group, Stack, SimpleGrid, Paper, Button, Code } from '@mantine/core';
+import { IconTrash, IconCalendar, IconCurrencyDollar, IconBuilding, IconBriefcase, IconMapPin, IconUser, IconId } from '@tabler/icons-react';
 import type { Person } from '../api/client';
 
 interface Props {
@@ -22,75 +24,123 @@ export default function PersonDetailModal({ person, onClose, onDelete }: Props) 
   });
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <div>
-            <h2 className="card-title">{person.name}</h2>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              {person.role} • {person.department}
-            </span>
-          </div>
-          <button className="btn btn-secondary btn-sm" onClick={onClose} aria-label="Close modal">
-            ✕
-          </button>
+    <Modal
+      opened={!!person}
+      onClose={onClose}
+      title={
+        <div>
+          <Title order={4}>{person.name}</Title>
+          <Text size="xs" c="dimmed">
+            {person.role} • {person.department}
+          </Text>
         </div>
+      }
+      centered
+      size="lg"
+    >
+      <Stack gap="sm">
+        <Paper withBorder p="xs" radius="sm">
+          <Group gap="xs">
+            <IconId size={16} style={{ color: 'var(--mantine-color-gray-6)' }} />
+            <Text size="xs" fw={700} c="dimmed" tt="uppercase">
+              Person ID
+            </Text>
+          </Group>
+          <Code block mt={4} style={{ fontSize: '0.8rem' }}>
+            {person.id}
+          </Code>
+        </Paper>
 
-        <div className="modal-body">
-          <div className="detail-grid">
-            <div className="detail-item detail-item-full">
-              <span className="detail-label">Person ID</span>
-              <span className="detail-value" style={{ fontFamily: 'monospace', fontSize: '0.825rem' }}>
-                {person.id}
-              </span>
-            </div>
+        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
+          <Paper withBorder p="xs" radius="sm">
+            <Group gap="xs">
+              <IconMapPin size={16} style={{ color: 'var(--mantine-color-blue-6)' }} />
+              <Text size="xs" fw={700} c="dimmed" tt="uppercase">
+                Country
+              </Text>
+            </Group>
+            <Text fw={500} mt={2}>
+              {person.country}
+            </Text>
+          </Paper>
 
-            <div className="detail-item">
-              <span className="detail-label">Country</span>
-              <span className="detail-value">{person.country}</span>
-            </div>
+          <Paper withBorder p="xs" radius="sm">
+            <Group gap="xs">
+              <IconBuilding size={16} style={{ color: 'var(--mantine-color-indigo-6)' }} />
+              <Text size="xs" fw={700} c="dimmed" tt="uppercase">
+                Department
+              </Text>
+            </Group>
+            <Text fw={500} mt={2}>
+              {person.department}
+            </Text>
+          </Paper>
 
-            <div className="detail-item">
-              <span className="detail-label">Department</span>
-              <span className="detail-value">{person.department}</span>
-            </div>
+          <Paper withBorder p="xs" radius="sm">
+            <Group gap="xs">
+              <IconBriefcase size={16} style={{ color: 'var(--mantine-color-violet-6)' }} />
+              <Text size="xs" fw={700} c="dimmed" tt="uppercase">
+                Role
+              </Text>
+            </Group>
+            <Text fw={500} mt={2}>
+              {person.role}
+            </Text>
+          </Paper>
 
-            <div className="detail-item">
-              <span className="detail-label">Role</span>
-              <span className="detail-value">{person.role}</span>
-            </div>
+          <Paper withBorder p="xs" radius="sm">
+            <Group gap="xs">
+              <Text size="xs" fw={700} c="dimmed" tt="uppercase">
+                Employment Status
+              </Text>
+            </Group>
+            <Badge mt={4} color={person.active ? 'teal' : 'gray'} variant="light">
+              {person.active ? 'Active' : 'Inactive'}
+            </Badge>
+          </Paper>
 
-            <div className="detail-item">
-              <span className="detail-label">Status</span>
-              <span className="detail-value">
-                <span className={`badge ${person.active ? 'badge-active' : 'badge-inactive'}`}>
-                  {person.active ? '● Active' : '○ Inactive'}
-                </span>
-              </span>
-            </div>
+          <Paper withBorder p="xs" radius="sm">
+            <Group gap="xs">
+              <IconUser size={16} style={{ color: 'var(--mantine-color-teal-6)' }} />
+              <Text size="xs" fw={700} c="dimmed" tt="uppercase">
+                Age
+              </Text>
+            </Group>
+            <Text fw={500} mt={2}>
+              {person.age} years
+            </Text>
+          </Paper>
 
-            <div className="detail-item">
-              <span className="detail-label">Age</span>
-              <span className="detail-value">{person.age} years</span>
-            </div>
+          <Paper withBorder p="xs" radius="sm">
+            <Group gap="xs">
+              <IconCurrencyDollar size={16} style={{ color: 'var(--mantine-color-green-6)' }} />
+              <Text size="xs" fw={700} c="dimmed" tt="uppercase">
+                Salary
+              </Text>
+            </Group>
+            <Text fw={600} c="teal.8" mt={2}>
+              {formattedSalary}
+            </Text>
+          </Paper>
+        </SimpleGrid>
 
-            <div className="detail-item">
-              <span className="detail-label">Salary (USD)</span>
-              <span className="detail-value" style={{ color: '#047857', fontWeight: 600 }}>
-                {formattedSalary}
-              </span>
-            </div>
+        <Paper withBorder p="xs" radius="sm">
+          <Group gap="xs">
+            <IconCalendar size={16} style={{ color: 'var(--mantine-color-orange-6)' }} />
+            <Text size="xs" fw={700} c="dimmed" tt="uppercase">
+              Joined Date
+            </Text>
+          </Group>
+          <Text fw={500} mt={2}>
+            {formattedJoinedAt}
+          </Text>
+        </Paper>
 
-            <div className="detail-item detail-item-full">
-              <span className="detail-label">Joined Date</span>
-              <span className="detail-value">{formattedJoinedAt}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="modal-footer">
-          <button
-            className="btn btn-danger btn-sm"
+        <Group justify="space-between" mt="md">
+          <Button
+            color="red"
+            variant="light"
+            leftSection={<IconTrash size={16} />}
             onClick={() => {
               if (window.confirm(`Are you sure you want to delete ${person.name}?`)) {
                 onDelete(person.id);
@@ -99,13 +149,12 @@ export default function PersonDetailModal({ person, onClose, onDelete }: Props) 
             }}
           >
             Delete Person
-          </button>
-          <button className="btn btn-secondary btn-sm" onClick={onClose}>
+          </Button>
+          <Button variant="default" onClick={onClose}>
             Close
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </Group>
+      </Stack>
+    </Modal>
   );
 }
-

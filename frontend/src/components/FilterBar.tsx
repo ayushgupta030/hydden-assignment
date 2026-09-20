@@ -1,3 +1,5 @@
+import { Card, Group, Select, Button, Text, Badge } from '@mantine/core';
+import { IconFilter, IconX } from '@tabler/icons-react';
 import type { FilterOptions } from '../api/client';
 
 interface Props {
@@ -44,10 +46,10 @@ export default function FilterBar({
 }: Props) {
   const activeCount = Object.values(filters).filter((v) => v !== undefined && v !== '').length;
 
-  const handleSelect = (key: keyof FilterOptions, value: string) => {
+  const handleSelect = (key: keyof FilterOptions, value: string | null) => {
     onChange({
       ...filters,
-      [key]: value === '' ? undefined : value,
+      [key]: value === null || value === '' ? undefined : value,
     });
   };
 
@@ -56,103 +58,67 @@ export default function FilterBar({
   };
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        gap: '0.75rem',
-        padding: '0.875rem 1.25rem',
-        background: '#ffffff',
-        border: '1px solid var(--border-color)',
-        borderRadius: 'var(--radius-md)',
-        marginBottom: '1rem',
-      }}
-    >
-      <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-muted)' }}>
-        🔍 Database Filters:
-      </span>
+    <Card withBorder shadow="xs" p="sm" radius="md" mb="md">
+      <Group gap="sm" wrap="wrap">
+        <Group gap={6}>
+          <IconFilter size={18} style={{ color: 'var(--mantine-color-blue-6)' }} />
+          <Text size="xs" fw={700} c="dimmed" tt="uppercase">
+            Database Filters:
+          </Text>
+        </Group>
 
-      {/* Department Filter */}
-      <select
-        value={filters.department || ''}
-        onChange={(e) => handleSelect('department', e.target.value)}
-        style={{
-          padding: '0.35rem 0.65rem',
-          borderRadius: 'var(--radius-sm)',
-          border: '1px solid var(--border-color)',
-          fontSize: '0.8125rem',
-          backgroundColor: filters.department ? 'var(--primary-light)' : '#ffffff',
-          color: filters.department ? 'var(--primary)' : 'var(--text-main)',
-          fontWeight: filters.department ? 600 : 400,
-          fontFamily: 'inherit',
-          cursor: 'pointer',
-        }}
-      >
-        <option value="">All Departments</option>
-        {departments.map((dept) => (
-          <option key={dept} value={dept}>
-            {dept}
-          </option>
-        ))}
-      </select>
+        <Select
+          size="xs"
+          placeholder="All Departments"
+          data={departments}
+          value={filters.department || null}
+          onChange={(val) => handleSelect('department', val)}
+          clearable
+          searchable
+          style={{ width: 170 }}
+        />
 
-      {/* Country Filter */}
-      <select
-        value={filters.country || ''}
-        onChange={(e) => handleSelect('country', e.target.value)}
-        style={{
-          padding: '0.35rem 0.65rem',
-          borderRadius: 'var(--radius-sm)',
-          border: '1px solid var(--border-color)',
-          fontSize: '0.8125rem',
-          backgroundColor: filters.country ? 'var(--primary-light)' : '#ffffff',
-          color: filters.country ? 'var(--primary)' : 'var(--text-main)',
-          fontWeight: filters.country ? 600 : 400,
-          fontFamily: 'inherit',
-          cursor: 'pointer',
-        }}
-      >
-        <option value="">All Countries</option>
-        {countries.map((c) => (
-          <option key={c} value={c}>
-            {c}
-          </option>
-        ))}
-      </select>
+        <Select
+          size="xs"
+          placeholder="All Countries"
+          data={countries}
+          value={filters.country || null}
+          onChange={(val) => handleSelect('country', val)}
+          clearable
+          searchable
+          style={{ width: 160 }}
+        />
 
-      {/* Active / Status Filter */}
-      <select
-        value={filters.active === undefined ? '' : String(filters.active)}
-        onChange={(e) => handleSelect('active', e.target.value)}
-        style={{
-          padding: '0.35rem 0.65rem',
-          borderRadius: 'var(--radius-sm)',
-          border: '1px solid var(--border-color)',
-          fontSize: '0.8125rem',
-          backgroundColor: filters.active !== undefined ? 'var(--primary-light)' : '#ffffff',
-          color: filters.active !== undefined ? 'var(--primary)' : 'var(--text-main)',
-          fontWeight: filters.active !== undefined ? 600 : 400,
-          fontFamily: 'inherit',
-          cursor: 'pointer',
-        }}
-      >
-        <option value="">All Statuses</option>
-        <option value="true">Active only</option>
-        <option value="false">Inactive only</option>
-      </select>
+        <Select
+          size="xs"
+          placeholder="All Statuses"
+          data={[
+            { value: 'true', label: 'Active only' },
+            { value: 'false', label: 'Inactive only' },
+          ]}
+          value={filters.active === undefined ? null : String(filters.active)}
+          onChange={(val) => handleSelect('active', val)}
+          clearable
+          style={{ width: 140 }}
+        />
 
-      {/* Clear Button if active */}
-      {activeCount > 0 && (
-        <button
-          className="btn btn-secondary btn-sm"
-          onClick={handleClear}
-          style={{ marginLeft: 'auto', fontSize: '0.75rem' }}
-        >
-          Clear Filters ({activeCount})
-        </button>
-      )}
-    </div>
+        {activeCount > 0 && (
+          <Group gap="xs" style={{ marginLeft: 'auto' }}>
+            <Badge size="sm" variant="light" color="blue">
+              {activeCount} active
+            </Badge>
+            <Button
+              size="xs"
+              variant="subtle"
+              color="gray"
+              leftSection={<IconX size={14} />}
+              onClick={handleClear}
+            >
+              Clear
+            </Button>
+          </Group>
+        )}
+      </Group>
+    </Card>
   );
 }
-

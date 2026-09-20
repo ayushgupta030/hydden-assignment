@@ -1,3 +1,5 @@
+import { Table, Badge, Button, ActionIcon, Group, Text, Center, Stack } from '@mantine/core';
+import { IconTrash, IconEye, IconUsers } from '@tabler/icons-react';
 import type { Person } from '../api/client';
 
 interface Props {
@@ -9,12 +11,17 @@ interface Props {
 export default function PersonTable({ people, onDelete, onSelectPerson }: Props) {
   if (people.length === 0) {
     return (
-      <div className="empty-state">
-        <p style={{ fontSize: '1.1rem', fontWeight: 500 }}>No people found</p>
-        <p style={{ fontSize: '0.875rem', marginTop: '0.25rem' }}>
-          No records match the current criteria or population has not been generated yet.
-        </p>
-      </div>
+      <Center py={60}>
+        <Stack align="center" gap="xs">
+          <IconUsers size={40} stroke={1.5} color="var(--mantine-color-gray-5)" />
+          <Text fw={600} size="lg">
+            No people found
+          </Text>
+          <Text size="sm" c="dimmed">
+            No records match the current criteria or population has not been generated yet.
+          </Text>
+        </Stack>
+      </Center>
     );
   }
 
@@ -22,47 +29,63 @@ export default function PersonTable({ people, onDelete, onSelectPerson }: Props)
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val);
 
   return (
-    <div className="table-responsive">
-      <table className="data-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Role</th>
-            <th>Department</th>
-            <th>Country</th>
-            <th>Age</th>
-            <th>Salary</th>
-            <th>Status</th>
-            <th style={{ textAlign: 'right' }}>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
+    <Table.ScrollContainer minWidth={800}>
+      <Table striped highlightOnHover verticalSpacing="sm" withRowBorders>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>Name</Table.Th>
+            <Table.Th>Role</Table.Th>
+            <Table.Th>Department</Table.Th>
+            <Table.Th>Country</Table.Th>
+            <Table.Th>Age</Table.Th>
+            <Table.Th>Salary</Table.Th>
+            <Table.Th>Status</Table.Th>
+            <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
           {people.map((p) => (
-            <tr key={p.id} onClick={() => onSelectPerson?.(p)}>
-              <td style={{ fontWeight: 600 }}>{p.name}</td>
-              <td>{p.role}</td>
-              <td>
-                <span className="badge badge-neutral">{p.department}</span>
-              </td>
-              <td>{p.country}</td>
-              <td>{p.age}</td>
-              <td style={{ fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(p.salary)}</td>
-              <td>
-                <span className={`badge ${p.active ? 'badge-active' : 'badge-inactive'}`}>
+            <Table.Tr
+              key={p.id}
+              onClick={() => onSelectPerson?.(p)}
+              style={{ cursor: 'pointer' }}
+            >
+              <Table.Td fw={600}>{p.name}</Table.Td>
+              <Table.Td>{p.role}</Table.Td>
+              <Table.Td>
+                <Badge variant="light" color="blue" size="sm">
+                  {p.department}
+                </Badge>
+              </Table.Td>
+              <Table.Td>{p.country}</Table.Td>
+              <Table.Td>{p.age}</Table.Td>
+              <Table.Td style={{ fontVariantNumeric: 'tabular-nums' }}>
+                {formatCurrency(p.salary)}
+              </Table.Td>
+              <Table.Td>
+                <Badge
+                  variant="dot"
+                  color={p.active ? 'teal' : 'gray'}
+                  size="sm"
+                >
                   {p.active ? 'Active' : 'Inactive'}
-                </span>
-              </td>
-              <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
-                <div className="table-actions" style={{ justifyContent: 'flex-end' }}>
-                  <button
-                    className="btn btn-secondary btn-sm"
+                </Badge>
+              </Table.Td>
+              <Table.Td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
+                <Group gap="xs" justify="flex-end">
+                  <Button
+                    size="xs"
+                    variant="light"
+                    color="blue"
+                    leftSection={<IconEye size={14} />}
                     onClick={() => onSelectPerson?.(p)}
-                    title="View full details"
                   >
                     Details
-                  </button>
-                  <button
-                    className="btn btn-danger btn-sm"
+                  </Button>
+                  <ActionIcon
+                    color="red"
+                    variant="subtle"
+                    size="sm"
                     onClick={() => {
                       if (window.confirm(`Delete ${p.name}?`)) {
                         onDelete(p.id);
@@ -70,14 +93,14 @@ export default function PersonTable({ people, onDelete, onSelectPerson }: Props)
                     }}
                     title="Delete person"
                   >
-                    Delete
-                  </button>
-                </div>
-              </td>
-            </tr>
+                    <IconTrash size={16} />
+                  </ActionIcon>
+                </Group>
+              </Table.Td>
+            </Table.Tr>
           ))}
-        </tbody>
-      </table>
-    </div>
+        </Table.Tbody>
+      </Table>
+    </Table.ScrollContainer>
   );
 }
